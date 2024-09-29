@@ -13,3 +13,7 @@ __pycache__/summary.cpython-310.pyc
 __pycache__/transcription.cpython-310.pyc
 __pycache__/video_text_extraction.cpython-310.pyc
 tmp.txt
+createdFiles/transcription.txt
+createdFiles/summary.txt
+locate_cache.py
+__pycache__/cache_utils.cpython-310.pyc
