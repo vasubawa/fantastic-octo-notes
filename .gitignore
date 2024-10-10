@@ -17,3 +17,5 @@ createdFiles/transcription.txt
 createdFiles/summary.txt
 locate_cache.py
 __pycache__/cache_utils.cpython-310.pyc
+config.py
+swap.sh
