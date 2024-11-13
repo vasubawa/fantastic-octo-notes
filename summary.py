@@ -1,10 +1,10 @@
-import nltk
-from transformers import pipeline
+import os
 import torch
+from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
 from tqdm import tqdm
+import nltk
 
-
-def chunk_text(text, max_chunk_length=1024):
+def chunk_text(text, max_chunk_length=512):
     sentences = nltk.sent_tokenize(text)  # Split text into sentences
     chunks = []
     current_chunk = []
@@ -21,17 +21,17 @@ def chunk_text(text, max_chunk_length=1024):
 
     return chunks
 
-def summarize_text(text, max_chunk_length=1024):
+def summarize_text(text, max_chunk_length=512):  # Reduce chunk length
     device = 0 if torch.cuda.is_available() else -1
-    summarizer = pipeline("summarization", model="facebook/bart-large-cnn", device=device)  # Use a smaller model if needed
+    summarizer = pipeline("text-generation", model="gpt2", device=device) 
     chunks = chunk_text(text, max_chunk_length=max_chunk_length)
     summarized_chunks = []
 
-    for chunk in chunks:
+    for chunk in tqdm(chunks, desc="Summarizing chunks"):
         input_length = len(chunk.split())
-        max_length = min(150, input_length)  # Adjust max_length based on input length
-        min_length = min(10, max_length - 1)  # Ensure min_length is less than max_length
-        summarized_chunk = summarizer(chunk, max_length=max_length, min_length=min_length, do_sample=False)[0]['summary_text']
+        max_length = min(100, input_length)  # Reduce max_length
+        min_length = min(10, max_length - 1)
+        summarized_chunk = summarizer(chunk, max_length=max_length, min_length=min_length, do_sample=False)[0]['generated_text']
         summarized_chunks.append(summarized_chunk)
 
     summarized_text = " ".join(summarized_chunks)
@@ -43,24 +43,21 @@ def process_transcription(transcription_file, summary_file_name):
         transcription = trans_file.read()
 
     # Split transcription into logical sections
-    sections = transcription.split("\n\n")  # Assuming double newline separates sections in the original text
+    sections = transcription.split("\n\n")  
 
     summarized_text = ""
 
     # Process each section individually to maintain structure
     for i, section in enumerate(sections):
         if len(section.strip()) == 0:
-            continue  # Skip empty sections
-        section_header = f"## Section {i + 1}\n"
+            continue
         summarized_section = summarize_text(section)  # Summarize each section
-        summarized_text += section_header + summarized_section + "\n\n"
+        summarized_text += f"Section {i+1}:\n{summarized_section}\n\n"
 
     # Write the summarized text to the summary file
     with open(summary_file_name, "w", encoding="utf-8") as summary_file:
         summary_file.write(summarized_text)
 
-    print(f"Summary saved to {summary_file_name}")
-
-    # Clear cache to free up memory
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+# Example usage of AutoTokenizer and AutoModelForCausalLM
+tokenizer = AutoTokenizer.from_pretrained("gpt2")
+model = AutoModelForCausalLM.from_pretrained("gpt2")

@@ -44,22 +44,22 @@ def main():
 
     # Extract audio from video
     print("Starting audio extraction...")
-    #extract_audio_from_video(input_file, audio_file)
+    extract_audio_from_video(input_file, audio_file)
     print("Audio extraction completed.")
 
     # Transcribe audio to text
     print("Starting transcription...")
-    #transcribe_audio(audio_file, transcribed_file_name)
+    transcribe_audio(audio_file, transcribed_file_name)
     print("Transcription completed.")
 
     # Process transcription
     print("Starting transcription processing...")
-    process_transcription(transcribed_file_name, summary_file_name)
+    #process_transcription(transcribed_file_name, summary_file_name)
     print("Transcription processing completed.")
 
     # Generate PDF
     print("Starting PDF generation...")
-    format_notes(summary_file_name, pdf_file_name)
+    #format_notes(summary_file_name, pdf_file_name)
     print("PDF generation completed.")
 
 if __name__ == "__main__":
