@@ -7,7 +7,7 @@ import atexit
 from audio_extraction import extract_audio_from_video
 from transcription import transcribe_audio
 from summary import process_transcription
-from notes_formatter import format_notes  # Import the PDF generator
+from notes_formatter import format_notes
 
 # Suppress specific FutureWarning from transformers.tokenization_utils_base
 warnings.filterwarnings("ignore", category=FutureWarning, module="transformers.tokenization_utils_base")
@@ -38,6 +38,15 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+def cleanup_created_files(files):
+    for file in files:
+        if os.path.exists(file):
+            try:
+                os.remove(file)
+                print(f"Removed file: {file}")
+            except Exception as e:
+                print(f"Error removing file {file}: {e}")
+
 def main():
 
     if len(sys.argv) != 2:
@@ -47,7 +56,7 @@ def main():
     input_file = sys.argv[1]
     audio_file = "createdFiles/output.wav"
     transcribed_file_name = "createdFiles/transcription.txt"
-    summary_file_name = "createdFiles/summary.txt"
+    summary_file_name = "createdFiles/summary.md"
     pdf_file_name = "createdFiles/notes.pdf"
 
     # Ensure directories exist
@@ -65,23 +74,26 @@ def main():
 
     # Extract audio from video
     print("Starting audio extraction...")
-    #extract_audio_from_video(input_file, audio_file)
-    print("Audio extraction completed.")
+    extract_audio_from_video(input_file, audio_file)
+    print(f"Audio extraction completed. {audio_file} Generated.")
 
     # Transcribe audio to text
     print("Starting transcription(Audio to Text)...")
-    #transcribe_audio(audio_file, transcribed_file_name)
-    print("Transcription completed.")
+    transcribe_audio(audio_file, transcribed_file_name)
+    print(f"Transcription completed. {transcribed_file_name} Generated.")
 
     # Process transcription
     print("Starting transcription processing(Summary)...")
     process_transcription(transcribed_file_name, summary_file_name)
-    print("Transcription processing completed.")
+    print(f"Transcription processing completed. {summary_file_name} Generated.")
 
     # Generate PDF
     print("Starting PDF generation(Summary to PDF)...")
     format_notes(summary_file_name, pdf_file_name)
-    print("PDF generation completed.")
+    print(f"PDF generation completed. {pdf_file_name} Generated.")
+
+    # Clean up created files
+    cleanup_created_files([audio_file, transcribed_file_name, summary_file_name])
 
 if __name__ == "__main__":
     main()

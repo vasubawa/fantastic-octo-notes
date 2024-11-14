@@ -8,3 +8,4 @@ envControl.sh
 venv
 __pycache__
 createdFiles
+AIO.py
