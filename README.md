@@ -56,7 +56,6 @@ Before you begin, ensure you have met the following requirements:
 6. **Install CUDA and cuDNN** (optional but recommended for GPU acceleration):
     - **Windows and Linux**: Follow the installation instructions from the [NVIDIA CUDA Toolkit website](https://developer.nvidia.com/cuda-toolkit).
 		- **cuDNN Version**: 8.x.x.x  (cudnn-linux-x86_64-8.9.7.29_cuda12-archive) Exact one I used
-    - **macOS**: CUDA is not supported on macOS.
 
 ## Usage
 
