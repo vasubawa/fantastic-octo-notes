@@ -1,6 +1,3 @@
-import os
-import tempfile
-import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 model_name = "Qwen/Qwen2.5-Coder-7B-Instruct"

@@ -9,3 +9,4 @@ venv
 __pycache__
 createdFiles
 AIO.py
+cleanup_packages.py

@@ -93,7 +93,7 @@ def main():
     print(f"PDF generation completed. {pdf_file_name} Generated.")
 
     # Clean up created files
-    cleanup_created_files([audio_file, transcribed_file_name, summary_file_name])
+    #cleanup_created_files([audio_file, transcribed_file_name, summary_file_name])
 
 if __name__ == "__main__":
     main()
