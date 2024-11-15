@@ -10,29 +10,82 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-def summarize_text(text, max_new_tokens=512):
+def estimate_max_tokens_3b(text, tokenizer):
+    # Count input tokens for logging
+    input_tokens = len(tokenizer.encode(text))
+    
+    # 3B Model: 32K context window
+    # Reserve ~half for input, half for generation
+    max_tokens = min(16384, 32768 - input_tokens)
+    
+    # Set minimum reasonable summary length
+    min_tokens = 2048
+    
+    tokens = max(min_tokens, max_tokens)
+    print(f"[3B] Input tokens: {input_tokens}, Max generation tokens: {tokens}")
+    return tokens
+
+def estimate_max_tokens_7b(text, tokenizer):
+    # Count input tokens for logging
+    input_tokens = len(tokenizer.encode(text))
+    
+    # 7B Model: 131K context window
+    # Reserve ~half for input, half for generation  
+    max_tokens = min(65536, 131072 - input_tokens)
+    
+    # Set minimum reasonable summary length
+    min_tokens = 2048
+    
+    tokens = max(min_tokens, max_tokens)
+    print(f"[7B] Input tokens: {input_tokens}, Max generation tokens: {tokens}")
+    return tokens
+
+# Use this for current 3B model - remember to change the 7B to 3B
+#estimate_max_tokens = estimate_max_tokens_3b
+#model_name = "Qwen/Qwen2.5-Coder-3B-Instruct"
+
+# Uncomment below and comment above to use 7B model - remeber to change the 3B to 7B
+estimate_max_tokens = estimate_max_tokens_7b
+model_name = "Qwen/Qwen2.5-Coder-7B-Instruct"
+
+def summarize_text(text):
+    max_new_tokens = estimate_max_tokens(text, tokenizer)
+    
     prompt = f"""
-Summarize the following text in a detailed manner, focusing on key points and providing explanations for each section. Include specific examples and comparisons where applicable. The summary should cover:
+Create an exhaustive, detailed analysis of this transcript. Your task:
 
-1. Introduction and overview
-2. Main concepts and ideas
-3. Key takeaways and implications
-4. Potential applications or real-world relevance
+1. **Content Extraction (100% Coverage)**
+   - Document EVERY concept mentioned
+   - Include ALL numerical data and specifications 
+   - Preserve ALL examples and comparisons
+   - Maintain ALL relationships between concepts
+   - Capture ALL implementation details
 
-Organize your response into clear sections with appropriate headings. Use bullet points and numbered lists to enhance readability. Ensure that your summary is comprehensive yet concise, capturing the essence of the original text while adding value through analysis and explanation.
+2. **Structural Analysis**
+   - Break down EACH major topic
+   - Show progression of ideas
+   - Highlight connections between sections
+   - Document ALL prerequisites and dependencies
+   - Map knowledge flow and build-up
 
-Please respond as if you were explaining this topic to someone who is unfamiliar with it but interested in learning more. Be clear, concise, and engaging in your writing style.
+3. **Detail Preservation**
+   - Start-to-finish coverage
+   - No summarization - maintain ALL details
+   - Keep ALL specific values and parameters
+   - Preserve ALL procedural steps
+   - Include ALL caveats and conditions
 
-Format your response using Markdown syntax. This means:
-- Use headers (e.g., # for main headers, ## for subheaders)
-- Utilize bold (**text**) and italic (*text*) formatting
-- Create lists using asterisks (*) for bullets or numbers
-- Use code blocks (```)
-:\n{text}"""
+Use detailed sub-sections and clear hierarchy.
+NEVER skip or summarize - document EVERYTHING.
+
+Begin detailed analysis:\n{text}"""
+
     messages = [
-        {"role": "system", "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant."},
+        {"role": "system", "content": "You are an expert analyst creating exhaustive documentation. Your task is to capture and explain EVERY detail from the input, regardless of domain. Never summarize or omit information."},
         {"role": "user", "content": prompt}
     ]
+    
+    
     text = tokenizer.apply_chat_template(
         messages,
         tokenize=False,
@@ -52,14 +105,11 @@ Format your response using Markdown syntax. This means:
     return summarized_text
 
 def process_transcription(transcription_file, summary_file_name):
-    # Read the transcription file
     with open(transcription_file, "r", encoding="utf-8") as trans_file:
         transcription = trans_file.read()
 
-    # Summarize the entire transcription
     summarized_text = summarize_text(transcription)
 
-    # Write the summarized text to a Markdown file
     with open(summary_file_name, "w", encoding="utf-8") as summary_file:
+        
         summary_file.write(summarized_text)
-

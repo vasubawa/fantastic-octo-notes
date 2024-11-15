@@ -9,8 +9,6 @@ from transcription import transcribe_audio
 from summary import process_transcription
 from notes_formatter import format_notes
 
-# Suppress specific FutureWarning from transformers.tokenization_utils_base
-warnings.filterwarnings("ignore", category=FutureWarning, module="transformers.tokenization_utils_base")
 
 # Function to print GPU information
 def print_gpu_info():
@@ -74,12 +72,12 @@ def main():
 
     # Extract audio from video
     print("Starting audio extraction...")
-    extract_audio_from_video(input_file, audio_file)
+    #extract_audio_from_video(input_file, audio_file)
     print(f"Audio extraction completed. {audio_file} Generated.")
 
     # Transcribe audio to text
     print("Starting transcription(Audio to Text)...")
-    transcribe_audio(audio_file, transcribed_file_name)
+    #transcribe_audio(audio_file, transcribed_file_name)
     print(f"Transcription completed. {transcribed_file_name} Generated.")
 
     # Process transcription

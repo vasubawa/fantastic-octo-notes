@@ -1,6 +1,6 @@
 # Audio Transcription and Summarization
 
-This project extracts audio from a video file, transcribes the audio to text, summarizes the transcription, and generates a PDF of the summary.
+This project extracts audio from a video file, transcribes the audio to text, summarizes the transcription, and generates a PDF of the summary. I created it to help me take better notes during lectures and classes.
 
 ## Prerequisites
 

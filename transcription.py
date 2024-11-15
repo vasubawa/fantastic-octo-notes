@@ -25,11 +25,11 @@ def transcribe_audio(audio_file, transcribed_file_name):
         transcribed_text += "\n" + segment.text
         pbar.update(1)  # Update the progress bar
 
-        # Periodically clear GPU cache
-        if i % 100 == 0:
-            torch.cuda.empty_cache()
-
     pbar.close()  # Close the progress bar when done
 
     with open(transcribed_file_name, "w", encoding="utf-8") as file:
         file.write(transcribed_text)
+
+    # Allow memory growth
+    if torch.cuda.is_available():
+        torch.cuda.set_per_process_memory_fraction(0.9, 0)  # Use GPU index 0
