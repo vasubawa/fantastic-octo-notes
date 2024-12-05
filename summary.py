@@ -1,56 +1,35 @@
+import os, time
+import torch.cuda
 from transformers import AutoModelForCausalLM, AutoTokenizer
+import warnings
 
-model_name = "Qwen/Qwen2.5-Coder-7B-Instruct"
+if torch.cuda.is_available():
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
+    torch.backends.cudnn.benchmark = True
 
-# Initialize the model and tokenizer
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+
+model_name = "Qwen/Qwen2.5-7B-Instruct-GPTQ-Int4"
+
+# Initialize the model with optimized settings
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
-    torch_dtype="auto",
-    device_map="auto"
+    device_map="auto",
+    trust_remote_code=True,
+    offload_folder="offload",
+    offload_buffers=True,  # Enable buffer offloading
+    torch_dtype=torch.float16  # Use half precision
 )
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-def estimate_max_tokens_3b(text, tokenizer):
-    # Count input tokens for logging
-    input_tokens = len(tokenizer.encode(text))
-    
-    # 3B Model: 32K context window
-    # Reserve ~half for input, half for generation
-    max_tokens = min(16384, 32768 - input_tokens)
-    
-    # Set minimum reasonable summary length
-    min_tokens = 2048
-    
-    tokens = max(min_tokens, max_tokens)
-    print(f"[3B] Input tokens: {input_tokens}, Max generation tokens: {tokens}")
-    return tokens
+def cleanup_gpu_memory():
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
 
-def estimate_max_tokens_7b(text, tokenizer):
-    # Count input tokens for logging
-    input_tokens = len(tokenizer.encode(text))
-    
-    # 7B Model: 131K context window
-    # Reserve ~half for input, half for generation  
-    max_tokens = min(65536, 131072 - input_tokens)
-    
-    # Set minimum reasonable summary length
-    min_tokens = 2048
-    
-    tokens = max(min_tokens, max_tokens)
-    print(f"[7B] Input tokens: {input_tokens}, Max generation tokens: {tokens}")
-    return tokens
-
-# Use this for current 3B model - remember to change the 7B to 3B
-#estimate_max_tokens = estimate_max_tokens_3b
-#model_name = "Qwen/Qwen2.5-Coder-3B-Instruct"
-
-# Uncomment below and comment above to use 7B model - remeber to change the 3B to 7B
-estimate_max_tokens = estimate_max_tokens_7b
-model_name = "Qwen/Qwen2.5-Coder-7B-Instruct"
-
-def summarize_text(text):
-    max_new_tokens = estimate_max_tokens(text, tokenizer)
-    
+def summarize_text(text, max_new_tokens=512):
     prompt = f"""
 Create an exhaustive, detailed analysis of this transcript. Your task:
 
@@ -61,22 +40,9 @@ Create an exhaustive, detailed analysis of this transcript. Your task:
    - Maintain ALL relationships between concepts
    - Capture ALL implementation details
 
-2. **Structural Analysis**
-   - Break down EACH major topic
-   - Show progression of ideas
-   - Highlight connections between sections
-   - Document ALL prerequisites and dependencies
-   - Map knowledge flow and build-up
-
-3. **Detail Preservation**
-   - Start-to-finish coverage
-   - No summarization - maintain ALL details
-   - Keep ALL specific values and parameters
-   - Preserve ALL procedural steps
-   - Include ALL caveats and conditions
-
 Use detailed sub-sections and clear hierarchy.
 NEVER skip or summarize - document EVERYTHING.
+You will use the MARKDOWN format from START to FINISH
 
 Begin detailed analysis:\n{text}"""
 
@@ -85,17 +51,16 @@ Begin detailed analysis:\n{text}"""
         {"role": "user", "content": prompt}
     ]
     
-    
     text = tokenizer.apply_chat_template(
         messages,
-        tokenize=False,
-        add_generation_prompt=True
+        tokenize = False,
+        add_generation_prompt = True
     )
     model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
 
     generated_ids = model.generate(
         **model_inputs,
-        max_new_tokens=max_new_tokens
+        max_new_tokens = max_new_tokens
     )
     generated_ids = [
         output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
@@ -104,12 +69,33 @@ Begin detailed analysis:\n{text}"""
     summarized_text = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
     return summarized_text
 
-def process_transcription(transcription_file, summary_file_name):
+def process_transcription(transcription_file, summary_file_name, chunk_size=3000):
+    if not os.path.exists(transcription_file):
+        print(f"Error: The file {transcription_file} does not exist.")
+        return
+
     with open(transcription_file, "r", encoding="utf-8") as trans_file:
         transcription = trans_file.read()
 
-    summarized_text = summarize_text(transcription)
+    # Split the transcription into chunks
+    chunks = [transcription[i:i + chunk_size] for i in range(0, len(transcription), chunk_size)]
+    
+    summarized_text = ""
+    start_time = time.time()
+    for i, chunk in enumerate(chunks):
+        print(f"Processing chunk {i+1}/{len(chunks)}")
+        try:
+            summarized_text += summarize_text(chunk) + "\n"
+        except Exception as e:
+            print(f"Error processing chunk {i+1}: {e}")
+            continue
+    end_time = time.time()
 
     with open(summary_file_name, "w", encoding="utf-8") as summary_file:
-        
         summary_file.write(summarized_text)
+
+    elapsed_time = end_time - start_time
+    print(f"Summarization completed in {elapsed_time // 60:.0f} minutes and {elapsed_time % 60:.0f} seconds.")
+
+
+cleanup_gpu_memory()
