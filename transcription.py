@@ -3,7 +3,7 @@ from tqdm import tqdm
 import torch
 
 def transcribe_audio(audio_file, transcribed_file_name):
-    model_size = "distil-large-v3"
+    model_size = "small"  # Use a smaller model size
     model = WhisperModel(model_size, device="cuda", compute_type="float16")
     
     # Check if the model has the flatten_parameters method and call it

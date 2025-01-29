@@ -1,5 +1,6 @@
-import os, time
-import torch.cuda
+import os
+import time
+import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import warnings
 
@@ -11,16 +12,15 @@ if torch.cuda.is_available():
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-model_name = "Qwen/Qwen2.5-7B-Instruct-GPTQ-Int4"
+model_name = "Qwen/Qwen2.5-Coder-3B"
 
-# Initialize the model with optimized settings
+# Initialize the model with optimized   
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     device_map="auto",
     trust_remote_code=True,
     offload_folder="offload",
     offload_buffers=True,  # Enable buffer offloading
-    torch_dtype=torch.float16  # Use half precision
 )
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
@@ -47,7 +47,7 @@ You will use the MARKDOWN format from START to FINISH
 Begin detailed analysis:\n{text}"""
 
     messages = [
-        {"role": "system", "content": "You are an expert analyst creating exhaustive documentation. Your task is to capture and explain EVERY detail from the input, regardless of domain. Never summarize or omit information."},
+        {"role": "system", "content": "You are an expert analyst creating exhaustive documentation."},
         {"role": "user", "content": prompt}
     ]
     
@@ -69,7 +69,7 @@ Begin detailed analysis:\n{text}"""
     summarized_text = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
     return summarized_text
 
-def process_transcription(transcription_file, summary_file_name, chunk_size=3000):
+def process_transcription(transcription_file, summary_file_name, chunk_size=1000):  # Reduced chunk size
     if not os.path.exists(transcription_file):
         print(f"Error: The file {transcription_file} does not exist.")
         return
@@ -89,6 +89,7 @@ def process_transcription(transcription_file, summary_file_name, chunk_size=3000
         except Exception as e:
             print(f"Error processing chunk {i+1}: {e}")
             continue
+        cleanup_gpu_memory()  # Clear GPU memory after processing each chunk
     end_time = time.time()
 
     with open(summary_file_name, "w", encoding="utf-8") as summary_file:
@@ -96,6 +97,5 @@ def process_transcription(transcription_file, summary_file_name, chunk_size=3000
 
     elapsed_time = end_time - start_time
     print(f"Summarization completed in {elapsed_time // 60:.0f} minutes and {elapsed_time % 60:.0f} seconds.")
-
 
 cleanup_gpu_memory()

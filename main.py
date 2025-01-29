@@ -9,12 +9,13 @@ from transcription import transcribe_audio
 from summary import process_transcription
 from notes_formatter import format_notes
 
-
 # Function to print GPU information
 def print_gpu_info():
     if torch.cuda.is_available():
-        gpu_info = torch.cuda.get_device_properties(0)
-        print(f"Using GPU: {gpu_info.name}")
+        num_gpus = torch.cuda.device_count()
+        for i in range(num_gpus):
+            gpu_info = torch.cuda.get_device_properties(i)
+            print(f"Using GPU {i}: {gpu_info.name}")
     else:
         print("No GPU available, using CPU.")
 
@@ -72,18 +73,23 @@ def main():
 
     # Extract audio from video
     print("Starting audio extraction...")
-    #extract_audio_from_video(input_file, audio_file)
+    # extract_audio_from_video(input_file, audio_file)
     print(f"Audio extraction completed. {audio_file} Generated.")
 
     # Transcribe audio to text
     print("Starting transcription(Audio to Text)...")
-    #transcribe_audio(audio_file, transcribed_file_name)
+    # transcribe_audio(audio_file, transcribed_file_name)
     print(f"Transcription completed. {transcribed_file_name} Generated.")
 
     # Process transcription
     print("Starting transcription processing(Summary)...")
     process_transcription(transcribed_file_name, summary_file_name)
     print(f"Transcription processing completed. {summary_file_name} Generated.")
+
+    # Check if summary file was created
+    if not os.path.exists(summary_file_name):
+        print(f"Error: The file {summary_file_name} does not exist.")
+        return
 
     # Generate PDF
     print("Starting PDF generation(Summary to PDF)...")
